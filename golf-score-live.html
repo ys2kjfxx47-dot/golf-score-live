@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Golf Score Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1a0f;--bg2:#162316;--bg3:#1d2e1d;--card:#243324;
+  --border:#2e422e;--border2:#3a543a;
+  --text:#e8f0e8;--text2:#a8bfa8;--text3:#6a8a6a;
+  --gold:#d4a843;--gold2:#f0c864;--gold-bg:rgba(212,168,67,0.12);
+  --green:#4a9e4a;--green2:#5cb85c;--green-bg:rgba(74,158,74,0.15);
+  --red:#e05050;--red2:#ff6b6b;--red-bg:rgba(224,80,80,0.15);
+  --blue:#5090d0;--blue2:#70b0f0;--blue-bg:rgba(80,144,208,0.15);
+  --r:10px;--r2:8px;
+}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+button{cursor:pointer;border:none;font-family:inherit;font-size:inherit}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;max-width:480px;margin:0 auto;background:var(--bg)}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-shrink:0}
+.topbar-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--gold)}
+.topbar-sub{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+.live-badge{display:flex;align-items:center;gap:5px;background:var(--red-bg);border:1px solid var(--red);border-radius:20px;padding:3px 10px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--red2);letter-spacing:.1em;text-transform:uppercase}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red2);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.content{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+.bottomnav{position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px)}
+.bnav-btn{flex:1;padding:10px 4px 14px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;color:var(--text2);font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;transition:color .2s;border-top:3px solid transparent}
+.bnav-btn .icon{font-size:24px}
+.bnav-btn.active{color:var(--gold);border-top-color:var(--gold)}
+.screen{display:none}.screen.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.card-body{padding:16px}
+.input-group{margin-bottom:14px}
+.input-label{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;display:block}
+.input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);color:var(--text);padding:11px 14px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.input:focus{border-color:var(--gold)}
+.input::placeholder{color:var(--text3)}
+.input-row{display:flex;gap:10px}
+.input-row .input-group{flex:1}
+.btn{padding:11px 18px;border-radius:var(--r2);font-size:14px;font-weight:600;transition:opacity .15s,transform .1s;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn:active{transform:scale(.97);opacity:.85}
+.btn-primary{background:var(--green);color:white}
+.btn-gold{background:var(--gold);color:var(--bg)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.btn-danger{background:var(--red-bg);color:var(--red2);border:1px solid var(--red)}
+.btn-full{width:100%}
+.btn-sm{padding:7px 13px;font-size:12px}
+.search-results{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);margin-top:6px;overflow:hidden;max-height:220px;overflow-y:auto}
+.search-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.search-item:last-child{border-bottom:none}
+.search-item:active,.search-item:hover{background:var(--border)}
+.search-item-name{font-size:14px;font-weight:500;color:var(--text)}
+.search-item-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.course-badge{background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r2);padding:12px 16px;margin-bottom:14px}
+.course-badge-name{font-weight:600;font-size:15px;color:var(--green2)}
+.course-badge-stats{display:flex;gap:16px;margin-top:6px;flex-wrap:wrap}
+.course-stat{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.course-stat span{color:var(--text);font-weight:600}
+.player-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.player-chip{padding:7px 14px;border-radius:20px;font-size:13px;font-weight:500;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:all .2s}
+.player-chip.selected{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:700}
+.player-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg3);border-radius:var(--r2);margin-bottom:8px;border:1px solid var(--border)}
+.player-row-name{font-weight:600;font-size:14px}
+.player-row-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.hcp-game-badge{background:var(--gold-bg);border:1px solid var(--gold);border-radius:6px;padding:3px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold2);white-space:nowrap}
+.lb-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;text-align:center}
+.lb-tournament{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--gold2)}
+.lb-course{font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:4px}
+.holes-track{display:flex;gap:3px;margin-top:12px;justify-content:center}
+.h-pip{width:13px;height:5px;border-radius:3px;background:var(--border2);transition:background .3s}
+.h-pip.done{background:var(--green)}
+.h-pip.active{background:var(--gold);animation:pip-glow .9s infinite alternate}
+@keyframes pip-glow{from{opacity:1}to{opacity:.5}}
+.lb-table{display:flex;flex-direction:column;gap:4px}
+.lb-head{display:grid;grid-template-columns:30px 1fr 50px 50px 42px;gap:4px;padding:4px 12px 8px;font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.12em}
+.lb-row{display:grid;grid-template-columns:30px 1fr 50px 50px 42px;gap:4px;align-items:center;padding:10px 12px;border-radius:var(--r2);background:var(--card);border:1px solid var(--border);cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden}
+.lb-row:active{background:var(--bg3)}
+.lb-row.rank-1{border-color:var(--gold);background:var(--gold-bg)}
+.lb-row.rank-2{border-color:rgba(192,192,192,.4);background:rgba(192,192,192,.05)}
+.lb-row.rank-3{border-color:rgba(180,120,60,.4);background:rgba(180,120,60,.05)}
+.lb-rank{font-family:'Playfair Display',serif;font-size:16px;font-weight:900;text-align:center;color:var(--text3)}
+.lb-row.rank-1 .lb-rank{color:var(--gold2)}
+.lb-row.rank-2 .lb-rank{color:#c0c0c0}
+.lb-row.rank-3 .lb-rank{color:#b47840}
+.lb-player-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-player-hcp{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:1px}
+.lb-stbl{text-align:right;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:600;color:var(--gold2)}
+.lb-stbl-label{font-size:8px;color:var(--text3);text-align:right;font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-top:1px}
+.lb-lordo{text-align:right;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text2)}
+.lb-lordo-label{font-size:8px;color:var(--text3);text-align:right;font-family:'JetBrains Mono',monospace;text-transform:uppercase;margin-top:1px}
+.lb-thru{text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.empty-lb{text-align:center;padding:48px 20px;color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em}
+.empty-lb .big-icon{font-size:48px;margin-bottom:16px;display:block}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;flex-direction:column;justify-content:flex-end;animation:fade-in .2s ease}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.modal{background:var(--bg2);border-radius:var(--r) var(--r) 0 0;border-top:3px solid var(--gold);max-height:92dvh;max-height:92vh;overflow-y:auto;animation:slide-up .25s ease;padding-bottom:env(safe-area-inset-bottom,0px)}
+@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-header{position:sticky;top:0;background:var(--bg2);padding:16px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;z-index:2}
+.modal-player-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:900;color:var(--gold2)}
+.modal-player-meta{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.modal-close{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;width:34px;height:34px;font-size:18px;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-body{padding:16px}
+.totals-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.total-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:10px 12px;text-align:center}
+.total-box-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:600;color:var(--gold2)}
+.total-box-val.green{color:var(--green2)}
+.total-box-val.blue{color:var(--blue2)}
+.total-box-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-top:2px;font-family:'JetBrains Mono',monospace}
+.sc-table{border-radius:var(--r2);overflow:hidden;border:1px solid var(--border);margin-bottom:14px}
+.sc-head{display:grid;grid-template-columns:26px 26px 26px 28px 1fr 32px 34px;gap:2px;padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--border);font-size:9px;color:var(--gold);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em}
+.sc-row{display:grid;grid-template-columns:26px 26px 26px 28px 1fr 32px 34px;gap:2px;padding:8px 10px;align-items:center;border-bottom:1px solid var(--border)}
+.sc-row:last-child{border-bottom:none}
+.sc-row.subtotal{background:var(--bg3);border-top:2px solid var(--border2)}
+.sc-cell{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;color:var(--text2)}
+.sc-cell.buca{font-size:13px;font-weight:600;color:var(--gold)}
+.sc-cell.par{color:var(--text3)}
+.sc-cell.vant{color:var(--green2);font-weight:600}
+.sc-cell.stbl{font-size:13px;font-weight:700;color:var(--gold2)}
+.c-eagle{color:#ff4444;font-weight:700}
+.c-birdie{color:#ff7070}
+.c-par{color:var(--text2)}
+.c-bogey{color:#70a8e8}
+.c-double{color:#5080c0}
+.c-worse{color:#4060a0}
+.c-empty{color:var(--text3);opacity:.3}
+.holes-mini{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:8px}
+.hole-mini{aspect-ratio:1;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--border)}
+.hole-mini-n{font-size:8px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.hole-mini-s{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text2)}
+.hole-mini.m-eagle{background:rgba(255,68,68,.25);border-color:#ff4444}
+.hole-mini.m-birdie{background:rgba(255,112,112,.15);border-color:rgba(255,112,112,.5)}
+.hole-mini.m-par{background:var(--bg3);border-color:var(--green)}
+.hole-mini.m-bogey{background:rgba(112,168,232,.15);border-color:rgba(112,168,232,.4)}
+.hole-mini.m-double{background:rgba(80,128,192,.25);border-color:rgba(80,128,192,.6)}
+.hole-mini.m-worse{background:rgba(64,96,160,.35);border-color:#4060a0}
+.hole-mini.m-empty{opacity:.2}
+.sc-entry-header{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
+.sc-entry-player{font-family:'Playfair Display',serif;font-size:20px;font-weight:900;color:var(--gold2)}
+.sc-entry-stats{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+.sc-stat-pill{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)}
+.sc-stat-pill span{color:var(--gold2);font-weight:600}
+.entry-table{border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.entry-head{display:grid;grid-template-columns:30px 26px 26px 28px 1fr 36px;gap:3px;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:9px;color:var(--gold);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;align-items:center}
+.entry-row{display:grid;grid-template-columns:30px 26px 26px 28px 1fr 36px;gap:3px;padding:6px 12px;align-items:center;border-bottom:1px solid var(--border);background:var(--card)}
+.entry-row:last-child{border-bottom:none}
+.entry-row.sub-row{background:var(--bg3);border-top:2px solid var(--border2)}
+.ec{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;color:var(--text2)}
+.ec.buca{font-weight:700;font-size:14px;color:var(--gold)}
+.ec.vant{color:var(--green2);font-weight:600}
+.ec.stbl-cell{font-size:13px;font-weight:700;color:var(--gold2);text-align:right}
+.stepper{display:flex;align-items:center;gap:4px}
+.step-btn{width:34px;height:34px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-size:22px;font-weight:300;display:flex;align-items:center;justify-content:center;transition:background .1s,border-color .1s;line-height:1}
+.step-btn:active{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+.step-num{width:36px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:var(--text)}
+.step-num.empty{color:var(--border2)}
+.sub-values{display:flex;gap:12px;align-items:center}
+.sub-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3)}
+.sub-val span{color:var(--gold2);font-weight:600}
+.section-label{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.18em;margin-bottom:10px;margin-top:4px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.hcp-preview-box{background:var(--gold-bg);border:1px solid var(--gold);border-radius:var(--r2);padding:12px 14px;margin-bottom:12px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--green);color:white;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:1000;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{background:var(--red)}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+select.input option{background:var(--bg2);color:var(--text)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">⛳ Golf Score</div>
+      <div class="topbar-sub" id="topbar-course">Configura campo →</div>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div>Live</div>
+  </div>
+  <div class="content" id="main-content">
+
+    <div id="screen-lb" class="screen active">
+      <div class="lb-hero">
+        <div class="lb-tournament" id="lb-title">Torneo Golf</div>
+        <div class="lb-course" id="lb-course-info">—</div>
+        <div class="holes-track" id="holes-track"></div>
+      </div>
+      <div class="lb-table">
+        <div class="lb-head">
+          <div></div><div>Giocatore</div>
+          <div style="text-align:right">Stbl</div>
+          <div style="text-align:right">Lordo</div>
+          <div style="text-align:center">Buca</div>
+        </div>
+        <div id="lb-rows"></div>
+      </div>
+    </div>
+
+    <div id="screen-sc" class="screen">
+      <div class="section-label">Seleziona giocatore</div>
+      <div class="player-chips" id="player-chips"></div>
+      <div id="sc-body">
+        <div class="empty-lb" style="padding:28px 0">
+          <span class="big-icon">👆</span>Seleziona un giocatore
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-setup" class="screen">
+      <div class="section-label">Campo di gioco</div>
+      <div class="card"><div class="card-body">
+        <div class="input-group" style="margin-bottom:10px"><label class="input-label">🔑 Anthropic API Key</label><input class="input" id="api-key" type="password" placeholder="sk-ant-..." autocomplete="off"><div style="font-size:10px;color:var(--text3);font-family:JetBrains Mono,monospace;margin-top:4px">Necessaria per la ricerca campi · <a href="https://console.anthropic.com" target="_blank" style="color:var(--gold)">Ottieni gratis →</a></div></div><button class="btn btn-primary btn-full" id="gps-btn" onclick="findNearby()" style="margin-bottom:12px;font-size:14px">📶 Trova campi vicino a me</button>
+        <div id="gps-status" style="display:none;text-align:center;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3)"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.14em">oppure cerca per nome</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <div class="input-group">
+          <div style="position:relative">
+            <input class="input" id="course-search" type="text" placeholder="Es. Golf Club Bergamo..." autocomplete="off">
+            <div id="search-spinner" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%)"><div class="spinner"></div></div>
+          </div>
+          <div id="course-results" class="search-results" style="display:none"></div>
+        </div>
+        <div id="course-selected" style="display:none">
+          <div class="course-badge">
+            <div class="course-badge-name" id="cs-name"></div>
+            <div class="course-badge-stats">
+              <div class="course-stat">CR <span id="cs-cr"></span></div>
+              <div class="course-stat">SR <span id="cs-sr"></span></div>
+              <div class="course-stat">Par <span id="cs-par"></span></div>
+              <div class="course-stat">Buche <span id="cs-holes"></span></div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="resetCourse()">✕ Cambia campo</button>
+        </div>
+        <div id="manual-course" style="display:none">
+          <div class="divider"></div>
+          <div class="section-label">Inserimento manuale CR/SR</div>
+          <div class="input-row">
+            <div class="input-group"><label class="input-label">Course Rating (CR)</label><input class="input" id="manual-cr" type="number" step="0.1" placeholder="71.5"></div>
+            <div class="input-group"><label class="input-label">Slope Rating (SR)</label><input class="input" id="manual-sr" type="number" placeholder="125"></div>
+          </div>
+          <div class="input-row">
+            <div class="input-group"><label class="input-label">Par campo</label><input class="input" id="manual-par" type="number" placeholder="72"></div>
+            <div class="input-group"><label class="input-label">Nome campo</label><input class="input" id="manual-name" type="text" placeholder="Golf Club..."></div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="saveManualCourse()">Conferma campo</button>
+        </div>
+        <div id="manual-toggle-wrap" style="margin-top:10px">
+          <button class="btn btn-ghost btn-sm btn-full" onclick="showManualForm()">✏️ Inserisci CR/SR manualmente</button>
+          <button class="btn btn-ghost btn-sm btn-full" style="margin-top:8px" onclick="showDBResults(COURSES_DB);document.getElementById('course-results').style.display='block'">🇮🇹 Sfoglia campi italiani (offline)</button>
+        </div>
+      </div></div>
+
+      <div class="section-label">Torneo</div>
+      <div class="card"><div class="card-body">
+        <div class="input-row">
+          <div class="input-group"><label class="input-label">Nome torneo</label><input class="input" id="t-name" type="text" placeholder="Trofeo Primavera" value="Torneo Golf"></div>
+          <div class="input-group" style="flex:0;min-width:130px"><label class="input-label">Data</label><input class="input" id="t-date" type="date"></div>
+        </div>
+        <button class="btn btn-gold btn-full" onclick="saveTournament()">💾 Salva torneo</button>
+      </div></div>
+
+      <div class="section-label">Giocatori in gara</div>
+      <div class="card"><div class="card-body">
+        <div class="input-row">
+          <div class="input-group"><label class="input-label">Nome giocatore</label><input class="input" id="p-name" type="text" placeholder="Mario Rossi"></div>
+          <div class="input-group" style="flex:0;min-width:105px"><label class="input-label">HCP esatto</label><input class="input" id="p-hcp" type="number" step="0.1" min="0" max="54" placeholder="12.4"></div>
+        </div>
+        <div class="input-group"><label class="input-label">Categoria</label>
+          <select class="input" id="p-cat">
+            <option value="1">Cat. 1 (≤4.4)</option>
+            <option value="2" selected>Cat. 2 (4.5–11.4)</option>
+            <option value="3">Cat. 3 (11.5–18.4)</option>
+            <option value="4">Cat. 4 (18.5–26.4)</option>
+            <option value="5">Cat. 5 (≥26.5)</option>
+          </select>
+        </div>
+        <div id="hcp-preview" class="hcp-preview-box" style="display:none">
+          <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px">Handicap di Gioco (WHS)</div>
+          <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--gold2)" id="hcp-preview-val">—</div>
+          <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px" id="hcp-preview-formula">—</div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="addPlayer()">＋ Aggiungi giocatore</button>
+      </div></div>
+      <div id="players-list"></div>
+
+      <div class="section-label">Configurazione buche (Par + Stroke Index)</div>
+      <div class="card"><div class="card-body" style="padding:12px">
+        <div id="holes-db-banner" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--green2);font-family:'JetBrains Mono',monospace">
+        ✓ Buche caricate dal database · Puoi modificarle qui sotto
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Modifica Par e Stroke Index (SI) di ogni buca</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px">
+            <thead><tr style="color:var(--gold);border-bottom:1px solid var(--border)">
+              <th style="padding:5px;text-align:center">Buca</th>
+              <th style="padding:5px;text-align:center">Par</th>
+              <th style="padding:5px;text-align:center">SI</th>
+            </tr></thead>
+            <tbody id="holes-setup-table"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-full" style="margin-top:10px" onclick="resetHoles()">↺ Default</button>
+      </div></div>
+    </div>
+
+  </div>
+
+  <div class="bottomnav">
+    <button class="bnav-btn active" id="btn-lb" onclick="switchTab('lb')"><span class="icon">🏆</span>Classifica</button>
+    <button class="bnav-btn" id="btn-sc" onclick="switchTab('sc')"><span class="icon">📝</span>Scorecard</button>
+    <button class="bnav-btn" id="btn-setup" onclick="switchTab('setup')"><span class="icon">⚙️</span>Setup</button>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-player-name" id="modal-name"></div>
+        <div class="modal-player-meta" id="modal-meta"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+
+// ── DATABASE CAMPI ITALIANI ──
+const COURSES_DB = [
+  {
+    name: "Golf Club Mare di Roma",
+    city: "Ardea (Roma)",
+    par: 70, holes: 9,
+    holesData: [
+      {n:1,par:5,si:11},{n:2,par:3,si:17},{n:3,par:4,si:1},
+      {n:4,par:3,si:7},{n:5,par:4,si:9},{n:6,par:5,si:5},
+      {n:7,par:4,si:3},{n:8,par:4,si:13},{n:9,par:3,si:15},
+      {n:10,par:5,si:12},{n:11,par:3,si:18},{n:12,par:4,si:2},
+      {n:13,par:3,si:8},{n:14,par:4,si:10},{n:15,par:5,si:6},
+      {n:16,par:4,si:4},{n:17,par:4,si:14},{n:18,par:3,si:16}
+    ],
+    tees: [
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 69.5, sr: 126 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 70.7, sr: 127 }
+    ]
+  },
+  {
+    name: "Golf Club Castelgandolfo",
+    city: "Castel Gandolfo (Roma)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:9},{n:2,par:3,si:15},{n:3,par:4,si:7},
+      {n:4,par:4,si:1},{n:5,par:5,si:5},{n:6,par:4,si:11},
+      {n:7,par:3,si:17},{n:8,par:5,si:3},{n:9,par:4,si:13},
+      {n:10,par:4,si:6},{n:11,par:5,si:10},{n:12,par:3,si:16},
+      {n:13,par:4,si:4},{n:14,par:4,si:14},{n:15,par:5,si:2},
+      {n:16,par:4,si:12},{n:17,par:3,si:18},{n:18,par:4,si:8}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 73.3, sr: 137 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 71.4, sr: 127 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.8, sr: 130 }
+    ]
+  },
+  {
+    name: "Circolo del Golf Roma Acquasanta",
+    city: "Roma",
+    par: 71, holes: 18,
+    holesData: [
+      {n:1,par:4,si:15},{n:2,par:3,si:17},{n:3,par:4,si:9},
+      {n:4,par:4,si:5},{n:5,par:3,si:13},{n:6,par:4,si:11},
+      {n:7,par:5,si:7},{n:8,par:4,si:1},{n:9,par:4,si:3},
+      {n:10,par:5,si:16},{n:11,par:3,si:18},{n:12,par:4,si:2},
+      {n:13,par:4,si:8},{n:14,par:4,si:12},{n:15,par:4,si:10},
+      {n:16,par:4,si:14},{n:17,par:4,si:4},{n:18,par:4,si:6}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 71.8, sr: 135 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 70.7, sr: 131 },
+      { label: "Blu — Uomini",    color: "#5090d0", gender: "M", cr: 71.4, sr: 122 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.3, sr: 132 }
+    ]
+  },
+  {
+    name: "Fioranello Golf Club",
+    city: "Roma",
+    par: 70, holes: 18,
+    holesData: [
+      {n:1,par:4,si:14},{n:2,par:3,si:18},{n:3,par:4,si:2},
+      {n:4,par:4,si:10},{n:5,par:3,si:16},{n:6,par:4,si:4},
+      {n:7,par:4,si:8},{n:8,par:5,si:6},{n:9,par:3,si:12},
+      {n:10,par:5,si:7},{n:11,par:3,si:15},{n:12,par:4,si:9},
+      {n:13,par:4,si:17},{n:14,par:5,si:13},{n:15,par:4,si:1},
+      {n:16,par:4,si:3},{n:17,par:3,si:11},{n:18,par:4,si:5}
+    ],
+    tees: [
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 69.9, sr: 129 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 71.2, sr: 124 }
+    ]
+  },
+  {
+    name: "Olgiata Golf Club (Ovest)",
+    city: "Roma",
+    par: 73, holes: 18,
+    holesData: [
+      {n:1,par:4,si:7},{n:2,par:3,si:13},{n:3,par:4,si:1},
+      {n:4,par:4,si:5},{n:5,par:4,si:3},{n:6,par:5,si:15},
+      {n:7,par:3,si:17},{n:8,par:4,si:9},{n:9,par:5,si:11},
+      {n:10,par:4,si:8},{n:11,par:5,si:16},{n:12,par:4,si:6},
+      {n:13,par:4,si:10},{n:14,par:3,si:18},{n:15,par:5,si:10},
+      {n:16,par:3,si:12},{n:17,par:5,si:12},{n:18,par:4,si:2}
+    ],
+    tees: [
+      { label: "Nero — Uomini",   color: "#333333", gender: "M", cr: 77.1, sr: 133 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 73.4, sr: 126 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 71.5, sr: 124 }
+    ]
+  },
+  {
+    name: "Marco Simone Golf & Country Club",
+    city: "Guidonia (Roma)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:11},{n:2,par:4,si:1},{n:3,par:4,si:3},
+      {n:4,par:3,si:17},{n:5,par:4,si:13},{n:6,par:4,si:15},
+      {n:7,par:3,si:5},{n:8,par:5,si:9},{n:9,par:5,si:7},
+      {n:10,par:4,si:4},{n:11,par:4,si:16},{n:12,par:5,si:12},
+      {n:13,par:3,si:18},{n:14,par:4,si:6},{n:15,par:4,si:2},
+      {n:16,par:4,si:10},{n:17,par:3,si:14},{n:18,par:5,si:8}
+    ],
+    tees: [
+      { label: "Nero — Uomini",   color: "#333333", gender: "M", cr: 76.2, sr: 140 },
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 74.1, sr: 133 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 72.1, sr: 129 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 75.0, sr: 137 }
+    ]
+  },
+  {
+    name: "Parco di Roma Golf Club",
+    city: "Roma",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:7},{n:2,par:5,si:3},{n:3,par:3,si:17},
+      {n:4,par:4,si:11},{n:5,par:4,si:1},{n:6,par:3,si:15},
+      {n:7,par:5,si:9},{n:8,par:4,si:5},{n:9,par:4,si:13},
+      {n:10,par:4,si:8},{n:11,par:4,si:2},{n:12,par:3,si:18},
+      {n:13,par:5,si:6},{n:14,par:4,si:12},{n:15,par:4,si:4},
+      {n:16,par:3,si:16},{n:17,par:4,si:10},{n:18,par:5,si:14}
+    ],
+    tees: [
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 72.0, sr: 130 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.5, sr: 128 }
+    ]
+  },
+  {
+    name: "Golf Nazionale",
+    city: "Sutri (Viterbo)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:9},{n:2,par:5,si:5},{n:3,par:4,si:1},
+      {n:4,par:3,si:17},{n:5,par:4,si:11},{n:6,par:5,si:3},
+      {n:7,par:4,si:7},{n:8,par:3,si:15},{n:9,par:4,si:13},
+      {n:10,par:4,si:10},{n:11,par:4,si:2},{n:12,par:3,si:18},
+      {n:13,par:5,si:6},{n:14,par:4,si:14},{n:15,par:4,si:4},
+      {n:16,par:3,si:16},{n:17,par:5,si:8},{n:18,par:4,si:12}
+    ],
+    tees: [
+      { label: "Nero — Uomini",   color: "#333333", gender: "M", cr: 73.8, sr: 145 },
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 72.1, sr: 138 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 70.5, sr: 132 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.9, sr: 135 }
+    ]
+  },
+  {
+    name: "Golf Club Milano (Barlassina)",
+    city: "Barlassina (Milano)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:11},{n:2,par:5,si:3},{n:3,par:4,si:7},
+      {n:4,par:3,si:17},{n:5,par:4,si:1},{n:6,par:4,si:13},
+      {n:7,par:3,si:15},{n:8,par:5,si:5},{n:9,par:4,si:9},
+      {n:10,par:4,si:10},{n:11,par:4,si:2},{n:12,par:3,si:16},
+      {n:13,par:5,si:6},{n:14,par:4,si:14},{n:15,par:4,si:4},
+      {n:16,par:3,si:18},{n:17,par:5,si:8},{n:18,par:4,si:12}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 73.2, sr: 138 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 71.4, sr: 132 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 73.8, sr: 136 }
+    ]
+  },
+  {
+    name: "Golf Club Bergamo L'Albenza",
+    city: "Almenno San Bartolomeo (Bergamo)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:9},{n:2,par:3,si:15},{n:3,par:5,si:3},
+      {n:4,par:4,si:1},{n:5,par:4,si:11},{n:6,par:4,si:7},
+      {n:7,par:3,si:17},{n:8,par:5,si:5},{n:9,par:4,si:13},
+      {n:10,par:4,si:10},{n:11,par:3,si:16},{n:12,par:5,si:4},
+      {n:13,par:4,si:2},{n:14,par:4,si:14},{n:15,par:4,si:8},
+      {n:16,par:3,si:18},{n:17,par:5,si:6},{n:18,par:4,si:12}
+    ],
+    tees: [
+      { label: "Nero — Uomini",   color: "#333333", gender: "M", cr: 74.1, sr: 140 },
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 72.3, sr: 134 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 70.6, sr: 128 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 73.2, sr: 132 }
+    ]
+  },
+  {
+    name: "Golf Club Torino La Mandria",
+    city: "Venaria Reale (Torino)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:11},{n:2,par:4,si:5},{n:3,par:3,si:17},
+      {n:4,par:5,si:3},{n:5,par:4,si:9},{n:6,par:4,si:1},
+      {n:7,par:3,si:15},{n:8,par:5,si:7},{n:9,par:4,si:13},
+      {n:10,par:4,si:12},{n:11,par:4,si:2},{n:12,par:3,si:18},
+      {n:13,par:5,si:6},{n:14,par:4,si:14},{n:15,par:4,si:4},
+      {n:16,par:3,si:16},{n:17,par:5,si:8},{n:18,par:4,si:10}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 72.8, sr: 135 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 71.0, sr: 129 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 73.4, sr: 132 }
+    ]
+  },
+  {
+    name: "Is Molas Golf Club",
+    city: "Pula (Cagliari)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:5,si:5},{n:2,par:4,si:9},{n:3,par:3,si:15},
+      {n:4,par:4,si:1},{n:5,par:4,si:11},{n:6,par:3,si:17},
+      {n:7,par:5,si:3},{n:8,par:4,si:7},{n:9,par:4,si:13},
+      {n:10,par:4,si:10},{n:11,par:3,si:16},{n:12,par:5,si:4},
+      {n:13,par:4,si:2},{n:14,par:4,si:12},{n:15,par:3,si:18},
+      {n:16,par:5,si:6},{n:17,par:4,si:8},{n:18,par:4,si:14}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 73.5, sr: 136 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 71.8, sr: 130 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 73.9, sr: 133 }
+    ]
+  },
+  {
+    name: "Golf Club Venezia Albarella",
+    city: "Isola di Albarella (Rovigo)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:5,si:7},{n:2,par:4,si:3},{n:3,par:3,si:15},
+      {n:4,par:4,si:11},{n:5,par:4,si:1},{n:6,par:3,si:17},
+      {n:7,par:5,si:9},{n:8,par:4,si:5},{n:9,par:4,si:13},
+      {n:10,par:4,si:8},{n:11,par:4,si:2},{n:12,par:3,si:18},
+      {n:13,par:5,si:6},{n:14,par:4,si:14},{n:15,par:3,si:16},
+      {n:16,par:5,si:4},{n:17,par:4,si:10},{n:18,par:4,si:12}
+    ],
+    tees: [
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 71.2, sr: 126 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.0, sr: 124 }
+    ]
+  },
+  {
+    name: "Golf Club Firenze Ugolino",
+    city: "Grassina (Firenze)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:9},{n:2,par:5,si:5},{n:3,par:4,si:1},
+      {n:4,par:3,si:17},{n:5,par:4,si:7},{n:6,par:4,si:11},
+      {n:7,par:3,si:15},{n:8,par:5,si:3},{n:9,par:4,si:13},
+      {n:10,par:4,si:10},{n:11,par:4,si:2},{n:12,par:3,si:18},
+      {n:13,par:5,si:6},{n:14,par:4,si:14},{n:15,par:4,si:4},
+      {n:16,par:3,si:16},{n:17,par:5,si:8},{n:18,par:4,si:12}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 72.6, sr: 133 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 70.9, sr: 127 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.4, sr: 129 }
+    ]
+  },
+  {
+    name: "Golf Club Napoli",
+    city: "Arco Felice (Napoli)",
+    par: 72, holes: 18,
+    holesData: [
+      {n:1,par:4,si:11},{n:2,par:3,si:17},{n:3,par:5,si:5},
+      {n:4,par:4,si:1},{n:5,par:4,si:13},{n:6,par:4,si:7},
+      {n:7,par:3,si:15},{n:8,par:5,si:3},{n:9,par:4,si:9},
+      {n:10,par:4,si:10},{n:11,par:3,si:16},{n:12,par:5,si:6},
+      {n:13,par:4,si:2},{n:14,par:4,si:12},{n:15,par:4,si:8},
+      {n:16,par:3,si:18},{n:17,par:5,si:4},{n:18,par:4,si:14}
+    ],
+    tees: [
+      { label: "Bianco — Uomini", color: "#e8e8e8", gender: "M", cr: 71.9, sr: 128 },
+      { label: "Giallo — Uomini", color: "#f0c864", gender: "M", cr: 70.3, sr: 124 },
+      { label: "Rosso — Donne",   color: "#e05050", gender: "F", cr: 72.1, sr: 126 }
+    ]
+  }
+];
+
+function searchOfflineDB(query) {
+  const q = query.toLowerCase().trim();
+  return COURSES_DB.filter(c =>
+    c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q)
+  );
+}
+
+function showDBResults(courses) {
+  const el = document.getElementById('course-results');
+  if (!courses.length) return false;
+  el._data = courses.map(c => ({...c, _isDB: true}));
+  el.innerHTML = courses.map((c, i) => {
+    const teeList = c.tees.map(t =>
+      `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${t.color};border:1px solid #555;display:inline-block"></span>
+        <span style="color:var(--text2)">${t.label} CR <b>${t.cr}</b> SR <b>${t.sr}</b></span>
+      </span>`
+    ).join('');
+    return `<div class="search-item" onclick="selectDBCourse(${i})">
+      <div class="search-item-name">📍 ${c.name} <span style="color:var(--green2);font-size:10px">● Database</span></div>
+      <div class="search-item-meta" style="color:var(--text3)">${c.city} · Par ${c.par}</div>
+      <div style="margin-top:5px;font-size:10px;line-height:1.8">${teeList}</div>
+    </div>`;
+  }).join('');
+  el.style.display = 'block';
+  return true;
+}
+
+function selectDBCourse(idx) {
+  const data = document.getElementById('course-results')._data;
+  if (!data || !data[idx]) return;
+  const c = data[idx];
+  hideResults();
+  showTeeSelector(c);
+}
+
+function showTeeSelector(course) {
+  const wrap = document.getElementById('manual-toggle-wrap');
+  document.getElementById('manual-course').style.display = 'none';
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div style="background:var(--green-bg);border:1px solid var(--green);border-radius:var(--r2);padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--green2);margin-bottom:8px">⛳ ${course.name}</div>
+      <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Seleziona tee e genere</div>
+      ${course.tees.map((t, i) => `
+        <button onclick="applyDBTee(${JSON.stringify(course).replace(/"/g,"'")} , ${i})"
+          style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:9px 12px;margin-bottom:6px;cursor:pointer;transition:border-color .2s;text-align:left"
+          onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border2)'">
+          <span style="width:14px;height:14px;border-radius:50%;background:${t.color};border:1px solid #666;flex-shrink:0"></span>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${t.label}</span>
+          <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold2)">CR ${t.cr} · SR ${t.sr}</span>
+        </button>`).join('')}
+      <button class="btn btn-ghost btn-sm btn-full" style="margin-top:4px" onclick="resetTeeSelector()">✕ Annulla</button>
+    </div>`;
+}
+
+function applyDBTee(courseStr, teeIdx) {
+  const course = typeof courseStr === 'string' ? JSON.parse(courseStr.replace(/'/g,'"')) : courseStr;
+  const tee = course.tees[teeIdx];
+  const courseObj = {
+    name: course.name + ' · ' + tee.label,
+    cr: tee.cr, sr: tee.sr, par: course.par, holes: course.holes||18
+  };
+  if(course.holesData) courseObj.holesData = course.holesData;
+  applyCourse(courseObj);
+  resetTeeSelector();
+}
+
+function resetTeeSelector() {
+  restoreToggles();
+}
+
+function restoreToggles() {
+  const wrap = document.getElementById('manual-toggle-wrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <button class="btn btn-ghost btn-sm btn-full" onclick="showManualForm()">✏️ Inserisci CR/SR manualmente</button>
+    <button class="btn btn-ghost btn-sm btn-full" style="margin-top:8px" onclick="showDBResults(COURSES_DB);document.getElementById('course-results').style.display='block'">🇮🇹 Sfoglia campi italiani (offline)</button>`;
+}
+
+function getApiKey(){
+  const el=document.getElementById("api-key");
+  if(el&&el.value.trim())return el.value.trim();
+  return localStorage.getItem("gs_apikey")||"";
+}
+
+const DEFAULT_HOLES=[
+  {n:1,par:4,si:11},{n:2,par:3,si:17},{n:3,par:5,si:5},
+  {n:4,par:4,si:1},{n:5,par:4,si:13},{n:6,par:4,si:7},
+  {n:7,par:3,si:15},{n:8,par:5,si:3},{n:9,par:4,si:9},
+  {n:10,par:4,si:10},{n:11,par:3,si:16},{n:12,par:5,si:6},
+  {n:13,par:4,si:2},{n:14,par:4,si:12},{n:15,par:4,si:8},
+  {n:16,par:3,si:18},{n:17,par:5,si:4},{n:18,par:4,si:14}
+];
+
+let S={tournament:{name:'Torneo Golf',date:''},course:null,holes:JSON.parse(JSON.stringify(DEFAULT_HOLES)),players:[],scores:{},selectedPlayer:null};
+
+function save(){try{localStorage.setItem('gs4',JSON.stringify(S));}catch(e){}}
+function load(){
+  try{
+    const d=localStorage.getItem('gs4');
+    if(d)S=JSON.parse(d);
+    if(!S.holes||S.holes.length!==18)S.holes=JSON.parse(JSON.stringify(DEFAULT_HOLES));
+    if(!S.scores)S.scores={};
+    S.players.forEach(p=>{if(!S.scores[p.id])S.scores[p.id]={};});
+  }catch(e){}
+}
+
+function calcHcpGame(hcpExact,cr,sr,par){return Math.round(hcpExact*(sr/113)+(cr-par));}
+function shotsOnHole(hcpGame,si){
+  if(hcpGame<=0)return 0;
+  let shots=0;
+  if(si<=Math.min(hcpGame,18))shots=1;
+  if(hcpGame>18&&si<=(hcpGame-18))shots=2;
+  if(hcpGame>36&&si<=(hcpGame-36))shots=3;
+  return shots;
+}
+function calcStableford(strokes,par,shots){
+  if(!strokes||strokes<=0)return null;
+  return Math.max(0,par+2-(strokes-shots));
+}
+function scoreClass(strokes,par){
+  if(!strokes)return 'c-empty';
+  const d=strokes-par;
+  if(d<=-2)return 'c-eagle';if(d===-1)return 'c-birdie';if(d===0)return 'c-par';
+  if(d===1)return 'c-bogey';if(d===2)return 'c-double';return 'c-worse';
+}
+function miniClass(strokes,par){
+  if(!strokes)return 'm-empty';
+  const d=strokes-par;
+  if(d<=-2)return 'm-eagle';if(d===-1)return 'm-birdie';if(d===0)return 'm-par';
+  if(d===1)return 'm-bogey';if(d===2)return 'm-double';return 'm-worse';
+}
+
+let searchTimeout=null;
+document.getElementById('course-search').addEventListener('input',function(){
+  clearTimeout(searchTimeout);
+  const q=this.value.trim();
+  if(q.length<2){hideResults();return;}
+  searchTimeout=setTimeout(()=>searchCourseByName(q),600);
+});
+
+async function findNearby(){
+  const btn=document.getElementById('gps-btn');
+  const status=document.getElementById('gps-status');
+  btn.disabled=true;
+  status.style.display='block';
+  if(!getApiKey()){status.textContent='⚠ Inserisci prima la tua API Key nel campo qui sopra.';btn.disabled=false;btn.innerHTML='📶 Trova campi vicino a me';return;}
+
+  // Prova 1: GPS + WiFi (enableHighAccuracy:false = usa WiFi/rete prima)
+  if(navigator.geolocation){
+    status.textContent='📶 Rilevamento via WiFi/rete in corso...';
+    btn.innerHTML='<div class="spinner" style="width:14px;height:14px;margin-right:6px"></div>Localizzazione...';
+
+    // Prima prova veloce con WiFi/rete (bassa precisione, più veloce indoor)
+    const wifiPos = await new Promise(resolve=>{
+      navigator.geolocation.getCurrentPosition(
+        pos=>resolve(pos),
+        ()=>resolve(null),
+        {enableHighAccuracy:false, timeout:8000, maximumAge:300000}
+      );
+    });
+
+    if(wifiPos){
+      const lat=wifiPos.coords.latitude.toFixed(5),lon=wifiPos.coords.longitude.toFixed(5);
+      const acc=Math.round(wifiPos.coords.accuracy);
+      const method=acc<100?'GPS':'WiFi/rete';
+      status.textContent='📶 Posizione via '+method+' (±'+acc+'m) — Ricerca campi...';
+      btn.innerHTML='<div class="spinner" style="width:14px;height:14px;margin-right:6px"></div>Ricerca...';
+      await searchCourseByCoords(lat,lon);
+      btn.disabled=false;btn.innerHTML='📍 Aggiorna posizione';
+      return;
+    }
+  }
+
+  // Prova 2: Geolocalizzazione via IP (fallback)
+  status.textContent='🌐 WiFi non disponibile — provo via indirizzo IP...';
+  try{
+    const ipRes=await fetch('https://ipapi.co/json/');
+    const ipData=await ipRes.json();
+    if(ipData&&ipData.latitude&&ipData.longitude){
+      const lat=parseFloat(ipData.latitude).toFixed(5);
+      const lon=parseFloat(ipData.longitude).toFixed(5);
+      status.textContent='🌐 Posizione approssimativa via IP ('+ipData.city+') — Ricerca campi...';
+      btn.innerHTML='<div class="spinner" style="width:14px;height:14px;margin-right:6px"></div>Ricerca...';
+      await searchCourseByCoords(lat,lon);
+      btn.disabled=false;btn.innerHTML='📍 Aggiorna posizione';
+      return;
+    }
+  }catch(e){}
+
+  // Nessun metodo disponibile
+  status.textContent='⚠ Impossibile rilevare la posizione. Usa la ricerca per nome o inserisci CR/SR manualmente.';
+  btn.disabled=false;btn.innerHTML='📍 Riprova localizzazione';
+}
+
+async function searchCourseByCoords(lat,lon){
+  const status=document.getElementById('gps-status');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,tools:[{"type":"web_search_20250305","name":"web_search"}],system:'Sei un esperto di golf italiano. Data una posizione GPS, trova i campi golf nelle vicinanze con i loro dati ufficiali. Cerca Course Rating (CR) e Slope Rating (SR) su federazionegolf.it, migliori-campo-golf.it, o siti ufficiali dei campi. Rispondi SOLO con JSON puro, niente markdown niente backtick. Formato: {"results":[{"name":"Nome Campo Golf","city":"Città (Provincia)","distance_km":5,"cr":71.5,"sr":125,"par":72,"holes":18,"address":"Via..."}]}. Massimo 6 campi ordinati per distanza. Se CR o SR non trovati metti null.',messages:[{role:'user',content:'Trova campi golf entro 25km da: lat='+lat+' lon='+lon+' (Italia). Per ogni campo cerca CR e SR ufficiali su federazionegolf.it. Rispondi SOLO JSON.'}]})});
+    const data=await res.json();
+    const tb=data.content&&data.content.find(b=>b.type==='text');
+    if(tb){try{let txt=tb.text.trim();const match=txt.match(/\{[\s\S]*\}/);if(match)txt=match[0];const j=JSON.parse(txt);const results=j.results||[];status.textContent='✓ Trovati '+results.length+' campi — seleziona il tuo campo';showResults(results);}catch(e){status.textContent='⚠ Errore risposta. Prova ricerca per nome.';showResults([]);}}
+  }catch(e){status.textContent='⚠ Errore di rete.';}
+}
+
+async function searchCourseByName(query){
+  document.getElementById('search-spinner').style.display='block';
+  // Prima cerca nel database offline
+  const dbResults = searchOfflineDB(query);
+  if(dbResults.length) { showDBResults(dbResults); document.getElementById('search-spinner').style.display='none'; return; }
+  // Se non trova nel db, prova con API (se disponibile)
+  if(!getApiKey()){ showResults([]); document.getElementById('search-spinner').style.display='none'; return; }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{"type":"web_search_20250305","name":"web_search"}],system:'Sei un esperto di golf italiano. Cerca il campo golf richiesto e i suoi dati ufficiali Course Rating CR e Slope Rating SR da federazionegolf.it o dal sito ufficiale del campo. Rispondi SOLO con JSON puro senza markdown ne backtick. Formato: {"results":[{"name":"Nome Campo Golf","city":"Città (Provincia)","cr":71.5,"sr":125,"par":72,"holes":18}]}. Massimo 4 risultati. Se CR SR non trovati metti null.',messages:[{role:'user',content:'Cerca campo golf "'+query+'" in Italia. Trova CR e SR ufficiali. Solo JSON.'}]})});
+    const data=await res.json();
+    const tb=data.content&&data.content.find(b=>b.type==='text');
+    if(tb){try{let txt=tb.text.trim();const match=txt.match(/\{[\s\S]*\}/);if(match)txt=match[0];const j=JSON.parse(txt);showResults(j.results||[]);}catch(e){showResults([]);}}
+  }catch(e){showResults([]);}
+  document.getElementById('search-spinner').style.display='none';
+}
+
+function showResults(results){
+  const el=document.getElementById('course-results');
+  if(!results||!results.length){el.innerHTML='<div class="search-item"><div class="search-item-name" style="color:var(--text3)">Nessun campo trovato. Inserisci CR/SR manualmente.</div></div>';el.style.display='block';el._data=[];return;}
+  el._data=results;
+  el.innerHTML=results.map((r,i)=>{
+    const dist=r.distance_km?'<span style="color:var(--green2);font-weight:600">'+r.distance_km+'km</span> · ':'';
+    const cr=r.cr?'CR <b style="color:var(--text)">'+r.cr+'</b>':'<span style="color:var(--gold)">CR ?</span>';
+    const sr=r.sr?' · SR <b style="color:var(--text)">'+r.sr+'</b>':' · <span style="color:var(--gold)">SR ?</span>';
+    const warn=(!r.cr||!r.sr)?'<span style="color:var(--gold);font-size:10px"> ✏️ Completare</span>':'';
+    return '<div class="search-item" onclick="selectCourse('+i+')">'+'<div class="search-item-name">'+r.name+warn+'</div>'+'<div class="search-item-meta">'+dist+(r.city||'')+' · '+cr+sr+' · Par '+(r.par||72)+' · '+(r.holes||18)+'t</div>'+'</div>';
+  }).join('');
+  el.style.display='block';
+}
+
+function selectCourse(idx){
+  const data=document.getElementById('course-results')._data;
+  if(!data||!data[idx])return;
+  const r=data[idx];hideResults();
+  if(!r.cr||!r.sr){document.getElementById('manual-name').value=r.name||'';document.getElementById('manual-par').value=r.par||72;document.getElementById('manual-course').style.display='block';document.getElementById('manual-toggle-wrap').style.display='none';showToast('CR/SR non trovati: inseriscili manualmente',true);}
+  else{applyCourse({name:r.name,cr:parseFloat(r.cr),sr:parseInt(r.sr),par:r.par||72,holes:r.holes||18});}
+}
+
+function hideResults(){document.getElementById('course-results').style.display='none';}
+function showManualForm(){document.getElementById('manual-course').style.display='block';document.getElementById('manual-toggle-wrap').style.display='none';}
+
+function saveManualCourse(){
+  const cr=parseFloat(document.getElementById('manual-cr').value);
+  const sr=parseInt(document.getElementById('manual-sr').value);
+  const par=parseInt(document.getElementById('manual-par').value)||72;
+  const name=document.getElementById('manual-name').value.trim()||'Campo Golf';
+  if(isNaN(cr)||cr<60||cr>80){showToast('CR non valido (60-80)',true);return;}
+  if(isNaN(sr)||sr<55||sr>155){showToast('SR non valido (55-155)',true);return;}
+  applyCourse({name,cr,sr,par,holes:18});
+}
+
+function applyCourse(course){
+  S.course=course;
+  // Se il campo ha dati buche nel db, aggiornali automaticamente
+  if(course.holesData && course.holesData.length===18){
+    S.holes = JSON.parse(JSON.stringify(course.holesData));
+    // Ri-renderizza tabella se visibile
+    if(document.getElementById('holes-setup-table').innerHTML !== '')renderHolesTable();
+    showToast('✓ Buche aggiornate dal database');
+  }
+  recalcAllHcp();save();
+  document.getElementById('cs-name').textContent=course.name;
+  document.getElementById('cs-cr').textContent=course.cr;
+  document.getElementById('cs-sr').textContent=course.sr;
+  document.getElementById('cs-par').textContent=course.par;
+  document.getElementById('cs-holes').textContent=course.holes||18;
+  document.getElementById('course-selected').style.display='block';
+  document.getElementById('manual-course').style.display='none';
+  const toggleWrap = document.getElementById('manual-toggle-wrap');
+  toggleWrap.style.display='none';
+  toggleWrap.innerHTML = `<button class="btn btn-ghost btn-sm btn-full" onclick="showManualForm()">✏️ Inserisci CR/SR manualmente</button><button class="btn btn-ghost btn-sm btn-full" style="margin-top:8px" onclick="showDBResults(COURSES_DB);document.getElementById('course-results').style.display='block'">🇮🇹 Sfoglia campi italiani (offline)</button>`;
+  document.getElementById('course-search').style.display='none';
+  updateTopbar();renderPlayersList();showToast('✓ '+course.name);
+}
+
+function resetCourse(){
+  S.course=null;save();
+  document.getElementById('course-selected').style.display='none';
+  document.getElementById('manual-course').style.display='none';
+  document.getElementById('course-search').style.display='block';
+  document.getElementById('course-search').value='';
+  hideResults();
+  restoreToggles();
+  updateTopbar();
+}
+
+function recalcAllHcp(){if(!S.course)return;S.players.forEach(p=>{p.hcpGame=calcHcpGame(p.hcp,S.course.cr,S.course.sr,S.course.par);});}
+
+document.getElementById('p-hcp').addEventListener('input',function(){
+  const hcp=parseFloat(this.value);const prev=document.getElementById('hcp-preview');
+  if(!S.course||isNaN(hcp)){prev.style.display='none';return;}
+  const hg=calcHcpGame(hcp,S.course.cr,S.course.sr,S.course.par);
+  document.getElementById('hcp-preview-val').textContent=hg;
+  document.getElementById('hcp-preview-formula').textContent=hcp+' × ('+S.course.sr+'/113) + ('+S.course.cr+' − '+S.course.par+') = '+hg;
+  prev.style.display='block';
+});
+
+function addPlayer(){
+  const name=document.getElementById('p-name').value.trim();
+  const hcp=parseFloat(document.getElementById('p-hcp').value);
+  const cat=parseInt(document.getElementById('p-cat').value);
+  if(!name){showToast('Inserisci il nome',true);return;}
+  if(isNaN(hcp)||hcp<0||hcp>54){showToast('HCP non valido',true);return;}
+  const id='p'+Date.now();
+  const hcpGame=S.course?calcHcpGame(hcp,S.course.cr,S.course.sr,S.course.par):null;
+  S.players.push({id,name:name.toUpperCase(),hcp,cat,hcpGame});S.scores[id]={};save();
+  document.getElementById('p-name').value='';document.getElementById('p-hcp').value='';document.getElementById('hcp-preview').style.display='none';
+  renderPlayersList();showToast('✓ '+name.toUpperCase()+' aggiunto');
+}
+
+function removePlayer(id){
+  if(!confirm('Rimuovere il giocatore e i suoi score?'))return;
+  S.players=S.players.filter(p=>p.id!==id);delete S.scores[id];
+  if(S.selectedPlayer===id)S.selectedPlayer=null;
+  save();renderPlayersList();
+}
+
+function renderPlayersList(){
+  const el=document.getElementById('players-list');
+  if(!S.players.length){el.innerHTML='';return;}
+  el.innerHTML=S.players.map(p=>{
+    const hg=S.course&&p.hcpGame!=null?`<div class="hcp-game-badge">HCP Gioco: ${p.hcpGame}</div>`:(!S.course?`<div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace">⚠ Configura campo</div>`:'');
+    return`<div class="player-row"><div><div class="player-row-name">${p.name}</div><div class="player-row-meta">HCP Esatto: ${p.hcp} · Cat. ${p.cat}</div></div><div style="display:flex;align-items:center;gap:8px">${hg}<button class="btn btn-danger btn-sm" onclick="removePlayer('${p.id}')">✕</button></div></div>`;
+  }).join('');
+}
+
+function renderHolesTable(){
+  // Mostra banner se le buche vengono dal db (non sono i default)
+  const isDefault = JSON.stringify(S.holes) === JSON.stringify(DEFAULT_HOLES);
+  const banner = document.getElementById('holes-db-banner');
+  if(banner) banner.style.display = isDefault ? 'none' : 'block';
+  document.getElementById('holes-setup-table').innerHTML=S.holes.map((h,i)=>`
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px;text-align:center;color:var(--gold);font-weight:700">${h.n}</td>
+      <td style="padding:5px;text-align:center"><input type="number" min="3" max="5" value="${h.par}" style="width:44px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);text-align:center;padding:4px;font-family:'JetBrains Mono',monospace;font-size:12px;-webkit-appearance:none" onchange="S.holes[${i}].par=parseInt(this.value)||4;save()"></td>
+      <td style="padding:5px;text-align:center"><input type="number" min="1" max="18" value="${h.si}" style="width:44px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);text-align:center;padding:4px;font-family:'JetBrains Mono',monospace;font-size:12px;-webkit-appearance:none" onchange="S.holes[${i}].si=parseInt(this.value)||${h.si};save()"></td>
+    </tr>`).join('');
+}
+function resetHoles(){if(!confirm('Ripristinare default?'))return;S.holes=JSON.parse(JSON.stringify(DEFAULT_HOLES));save();renderHolesTable();showToast('Buche ripristinate');}
+
+function saveTournament(){S.tournament.name=document.getElementById('t-name').value.trim()||'Torneo Golf';S.tournament.date=document.getElementById('t-date').value;save();updateTopbar();showToast('✓ Torneo salvato');}
+function updateTopbar(){document.getElementById('topbar-course').textContent=S.course?S.course.name+' · CR '+S.course.cr+' · SR '+S.course.sr:'Configura campo →';}
+
+function getStats(player){
+  const sc=S.scores[player.id]||{};const hg=player.hcpGame??0;
+  let gross=0,net=0,stbl=0,played=0;
+  S.holes.forEach((h,i)=>{const s=sc[i];if(s&&s>0){const shots=shotsOnHole(hg,h.si);played++;gross+=s;net+=(s-shots);stbl+=calcStableford(s,h.par,shots)||0;}});
+  return{gross,net,stbl,played};
+}
+
+function renderLeaderboard(){
+  document.getElementById('lb-title').textContent=S.tournament.name||'Torneo Golf';
+  document.getElementById('lb-course-info').textContent=S.course?S.course.name+' · CR '+S.course.cr+' · SR '+S.course.sr:'⚠ Campo non configurato';
+  const maxP=S.players.length?Math.max(...S.players.map(p=>getStats(p).played),0):0;
+  document.getElementById('holes-track').innerHTML=S.holes.map((h,i)=>`<div class="h-pip${i<maxP?' done':i===maxP?' active':''}"></div>`).join('');
+  const rows=document.getElementById('lb-rows');
+  if(!S.players.length){rows.innerHTML=`<div class="empty-lb"><span class="big-icon">🏌️</span>Nessun giocatore.<br>Vai su <b>Setup</b>.</div>`;return;}
+  const sorted=[...S.players].map(p=>({...p,st:getStats(p)})).sort((a,b)=>b.st.stbl!==a.st.stbl?b.st.stbl-a.st.stbl:b.st.played-a.st.played);
+  rows.innerHTML=sorted.map((p,i)=>{
+    const{gross,stbl,played}=p.st;
+    const rc=i<3?`rank-${i+1}`:'';const rl=i<3?['🥇','🥈','🥉'][i]:`${i+1}`;
+    const thru=played===0?'—':played===18?`<span style="color:var(--green2);font-weight:600">F</span>`:played;
+    const hg=S.course?`HCP Gioco: ${p.hcpGame}`:`HCP: ${p.hcp}`;
+    return`<div class="lb-row ${rc}" onclick="openModal('${p.id}')"><div class="lb-rank">${rl}</div><div><div class="lb-player-name">${p.name}</div><div class="lb-player-hcp">${hg} · Cat.${p.cat}</div></div><div><div class="lb-stbl">${played>0?stbl:`<span style="color:var(--text3)">—</span>`}</div><div class="lb-stbl-label">Stbl</div></div><div><div class="lb-lordo">${played>0?gross:`<span style="color:var(--text3)">—</span>`}</div><div class="lb-lordo-label">Lordo</div></div><div class="lb-thru">${thru}</div></div>`;
+  }).join('');
+}
+
+function openModal(pid){
+  const p=S.players.find(x=>x.id===pid);if(!p)return;
+  const sc=S.scores[pid]||{};const hg=p.hcpGame??0;
+  document.getElementById('modal-name').textContent=p.name;
+  document.getElementById('modal-meta').textContent=`HCP Esatto: ${p.hcp} · HCP Gioco: ${hg} · Cat. ${p.cat}`+(S.course?` · ${S.course.name}`:'');
+  let totG=0,totN=0,totS=0,played=0,f9G=0,f9S=0,b9G=0,b9S=0;
+  S.holes.forEach((h,i)=>{const s=sc[i];const shots=shotsOnHole(hg,h.si);if(s&&s>0){played++;totG+=s;totN+=(s-shots);const pts=calcStableford(s,h.par,shots)||0;totS+=pts;if(i<9){f9G+=s;f9S+=pts;}else{b9G+=s;b9S+=pts;}}});
+  let mini='';
+  ['FRONT 9','BACK 9'].forEach((lbl,half)=>{
+    mini+=`<div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px${half?';margin-top:10px':''}">${lbl}</div><div class="holes-mini">`;
+    for(let i=half*9;i<half*9+9;i++){const h=S.holes[i];const s=sc[i];mini+=`<div class="hole-mini ${miniClass(s,h.par)}"><div class="hole-mini-n">${h.n}</div><div class="hole-mini-s">${s||'·'}</div></div>`;}
+    mini+=`</div>`;
+  });
+  const parTot=S.holes.reduce((a,h)=>a+h.par,0);
+  let tbl=`<div class="sc-table"><div class="sc-head"><div>B.</div><div>Par</div><div>SI</div><div>Van.</div><div style="text-align:center">Colpi</div><div>Netto</div><div>Stbl</div></div>`;
+  [0,9].forEach(start=>{
+    let gG=0,gS=0;
+    for(let i=start;i<start+9;i++){
+      const h=S.holes[i];const shots=shotsOnHole(hg,h.si);const s=sc[i];const net=s?s-shots:null;const pts=calcStableford(s,h.par,shots);const cls=scoreClass(s,h.par);
+      if(s){gG+=s;gS+=pts||0;}
+      tbl+=`<div class="sc-row"><div class="sc-cell buca">${h.n}</div><div class="sc-cell par">${h.par}</div><div class="sc-cell" style="color:var(--text3)">${h.si}</div><div class="sc-cell vant">${shots>0?'+'+shots:'—'}</div><div class="sc-cell ${cls}" style="text-align:center;font-size:14px;font-weight:700">${s||'·'}</div><div class="sc-cell ${s?cls:'c-empty'}">${net!==null?net:'—'}</div><div class="sc-cell stbl">${pts!==null?pts+'pt':'—'}</div></div>`;
+    }
+    const lbl=start===0?'FRONT':'BACK';const parH=S.holes.slice(start,start+9).reduce((a,h)=>a+h.par,0);
+    tbl+=`<div class="sc-row subtotal"><div class="sc-cell buca" style="font-size:9px">${lbl}</div><div class="sc-cell par">${parH}</div><div></div><div></div><div class="sc-cell" style="text-align:center;font-weight:700;color:var(--text)">${gG||'—'}</div><div></div><div class="sc-cell stbl">${gS?gS+'pt':'—'}</div></div>`;
+  });
+  tbl+=`</div>`;
+  const toPar=played>0?totG-parTot:null;
+  const toParStr=toPar!==null?(toPar>0?'+'+toPar:toPar===0?'E':toPar):'—';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="totals-strip">
+      <div class="total-box"><div class="total-box-val">${played>0?totS:'—'}</div><div class="total-box-lbl">Stableford</div></div>
+      <div class="total-box"><div class="total-box-val green">${played>0?totG:'—'}</div><div class="total-box-lbl">Lordo</div></div>
+      <div class="total-box"><div class="total-box-val blue">${played>0?totN:'—'}</div><div class="total-box-lbl">Netto</div></div>
+    </div>
+    <div style="margin-bottom:14px">${mini}</div>${tbl}
+    <div style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-top:8px;letter-spacing:.08em">TO PAR: ${toParStr} &nbsp;·&nbsp; Buche: ${played}/18</div>`;
+  document.getElementById('modal-overlay').style.display='flex';
+}
+function closeModal(e){if(!e||e.target===document.getElementById('modal-overlay'))document.getElementById('modal-overlay').style.display='none';}
+
+function renderScorecardTab(){
+  document.getElementById('player-chips').innerHTML=S.players.length?S.players.map(p=>`<div class="player-chip${S.selectedPlayer===p.id?' selected':''}" onclick="selectPlayer('${p.id}')">${p.name}</div>`).join(''):`<div style="color:var(--text3);font-size:13px">Vai su Setup per aggiungere giocatori.</div>`;
+  if(!S.selectedPlayer||!S.players.find(p=>p.id===S.selectedPlayer)){document.getElementById('sc-body').innerHTML=`<div class="empty-lb" style="padding:24px 0"><span class="big-icon" style="font-size:36px">👆</span>Seleziona un giocatore</div>`;return;}
+  buildEntryTable(S.selectedPlayer);
+}
+function selectPlayer(id){S.selectedPlayer=id;renderScorecardTab();}
+
+function buildEntryTable(pid){
+  const p=S.players.find(x=>x.id===pid);if(!p)return;
+  const sc=S.scores[pid]||{};const hg=p.hcpGame??0;
+  let totG=0,totN=0,totS=0,played=0;
+  S.holes.forEach((h,i)=>{const s=sc[i];if(s&&s>0){const sh=shotsOnHole(hg,h.si);played++;totG+=s;totN+=(s-sh);totS+=calcStableford(s,h.par,sh)||0;}});
+  const warnBanner=!S.course?`<div style="background:var(--gold-bg);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gold2)">⚠️ Campo non configurato — i colpi di vantaggio non sono calcolati. Vai su Setup.</div>`:'';
+  let html=warnBanner+`<div class="sc-entry-header"><div class="sc-entry-player">${p.name}</div><div class="sc-entry-stats"><div class="sc-stat-pill">HCP: <span>${p.hcp}</span></div>${S.course?`<div class="sc-stat-pill">HCP Gioco: <span>${hg}</span></div>`:''}<div class="sc-stat-pill">Cat. <span>${p.cat}</span></div>${S.course?`<div class="sc-stat-pill">${S.course.name}</div>`:''}</div></div><div class="entry-table"><div class="entry-head"><div>B.</div><div>Par</div><div>SI</div><div>Van.</div><div style="text-align:center">Colpi</div><div style="text-align:right">Stbl</div></div>`;
+  [0,9].forEach(start=>{
+    let gG=0,gS=0,gP=0;
+    for(let i=start;i<start+9;i++){
+      const h=S.holes[i];const shots=shotsOnHole(hg,h.si);const s=sc[i]||0;const pts=calcStableford(s,h.par,shots);
+      if(s){gG+=s;gS+=pts||0;gP++;}
+      html+=`<div class="entry-row"><div class="ec buca">${h.n}</div><div class="ec">${h.par}</div><div class="ec" style="color:var(--text3)">${h.si}</div><div class="ec vant">${shots>0?'+'+shots:'—'}</div><div><div class="stepper"><button class="step-btn" onclick="changeScore('${pid}',${i},-1)">−</button><div class="step-num${s?'':' empty'}" id="sv-${pid}-${i}">${s||'·'}</div><button class="step-btn" onclick="changeScore('${pid}',${i},1)">+</button></div></div><div class="ec stbl-cell" id="st-${pid}-${i}">${pts!==null?pts+'pt':'—'}</div></div>`;
+    }
+    const parH=S.holes.slice(start,start+9).reduce((a,h)=>a+h.par,0);const lbl=start===0?'FRONT 9':'BACK 9';
+    html+=`<div class="entry-row sub-row"><div class="ec" style="color:var(--gold);font-size:9px;font-weight:700">${lbl}</div><div class="ec" style="color:var(--text3)">${parH}</div><div></div><div></div><div class="sub-values" style="padding-left:4px"><div class="sub-val">Lordo: <span id="sg-${pid}-${start}">${gG||'—'}</span></div><div class="sub-val">Stbl: <span id="ss-${pid}-${start}">${gP?gS:'—'}</span></div></div><div></div></div>`;
+  });
+  html+=`</div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center"><div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--gold2)" id="tot-s-${pid}">${totS||'—'}</div><div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:2px">Stableford</div></div><div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--green2)" id="tot-g-${pid}">${totG||'—'}</div><div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:2px">Lordo</div></div><div><div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:var(--blue2)" id="tot-n-${pid}">${totN||'—'}</div><div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-top:2px">Netto</div></div></div>`;
+  document.getElementById('sc-body').innerHTML=html;
+}
+
+function changeScore(pid,hi,delta){
+  if(!S.scores[pid])S.scores[pid]={};
+  const cur=S.scores[pid][hi]||0;let next=cur+delta;
+  if(next<0)next=0;if(next>15)next=15;
+  if(next===0)delete S.scores[pid][hi];else S.scores[pid][hi]=next;
+  save();
+  const sv=document.getElementById(`sv-${pid}-${hi}`);
+  if(sv){sv.textContent=next||'·';sv.className=`step-num${next?'':' empty'}`;}
+  const p=S.players.find(x=>x.id===pid);
+  if(p){const hg=p.hcpGame??0;const h=S.holes[hi];const shots=shotsOnHole(hg,h.si);const pts=calcStableford(next,h.par,shots);const stEl=document.getElementById(`st-${pid}-${hi}`);if(stEl)stEl.textContent=pts!==null?pts+'pt':'—';}
+  updateTotals(pid);
+}
+
+function updateTotals(pid){
+  const p=S.players.find(x=>x.id===pid);if(!p)return;
+  const sc=S.scores[pid]||{};const hg=p.hcpGame??0;
+  let tG=0,tN=0,tS=0,f9G=0,f9S=0,f9P=0,b9G=0,b9S=0,b9P=0;
+  S.holes.forEach((h,i)=>{const s=sc[i];if(!s||s<=0)return;const sh=shotsOnHole(hg,h.si);const pts=calcStableford(s,h.par,sh)||0;tG+=s;tN+=(s-sh);tS+=pts;if(i<9){f9G+=s;f9S+=pts;f9P++;}else{b9G+=s;b9S+=pts;b9P++;}});
+  const el=id=>document.getElementById(id);
+  if(el(`tot-s-${pid}`))el(`tot-s-${pid}`).textContent=tS||'—';
+  if(el(`tot-g-${pid}`))el(`tot-g-${pid}`).textContent=tG||'—';
+  if(el(`tot-n-${pid}`))el(`tot-n-${pid}`).textContent=tN||'—';
+  if(el(`sg-${pid}-0`))el(`sg-${pid}-0`).textContent=f9G||'—';
+  if(el(`ss-${pid}-0`))el(`ss-${pid}-0`).textContent=f9P?f9S:'—';
+  if(el(`sg-${pid}-9`))el(`sg-${pid}-9`).textContent=b9G||'—';
+  if(el(`ss-${pid}-9`))el(`ss-${pid}-9`).textContent=b9P?b9S:'—';
+}
+
+function switchTab(tab){
+  ['lb','sc','setup'].forEach(t=>{document.getElementById(`screen-${t}`).classList.toggle('active',t===tab);document.getElementById(`btn-${t}`).classList.toggle('active',t===tab);});
+  document.getElementById('main-content').scrollTop=0;
+  if(tab==='lb')renderLeaderboard();
+  if(tab==='sc')renderScorecardTab();
+  if(tab==='setup'){
+    document.getElementById('t-name').value=S.tournament.name;document.getElementById('t-date').value=S.tournament.date;
+    if(S.course){
+      document.getElementById('cs-name').textContent=S.course.name;
+      document.getElementById('cs-cr').textContent=S.course.cr;
+      document.getElementById('cs-sr').textContent=S.course.sr;
+      document.getElementById('cs-par').textContent=S.course.par;
+      document.getElementById('cs-holes').textContent=S.course.holes||18;
+      document.getElementById('course-selected').style.display='block';
+      document.getElementById('manual-toggle-wrap').style.display='none';
+      document.getElementById('course-search').style.display='none';
+    } else {
+      restoreToggles();
+    }
+    renderPlayersList();renderHolesTable();
+  }
+}
+
+let toastT;
+function showToast(msg,isErr=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(isErr?' error':'');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800);}
+
+// Ripristina API key salvata
+const savedKey=localStorage.getItem("gs_apikey");
+if(savedKey){const kEl=document.getElementById("api-key");if(kEl)kEl.value=savedKey;}
+document.addEventListener("input",function(e){if(e.target.id==="api-key"&&e.target.value.startsWith("sk-"))localStorage.setItem("gs_apikey",e.target.value.trim());});
+
+load();renderLeaderboard();updateTopbar();
+setInterval(()=>{if(document.getElementById('screen-lb').classList.contains('active'))renderLeaderboard();},8000);
+</script>
+</body>
+</html>
